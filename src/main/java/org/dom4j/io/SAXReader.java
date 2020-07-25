@@ -15,11 +15,12 @@ import java.io.Reader;
 import java.io.Serializable;
 import java.net.URL;
 
+import javax.xml.parsers.SAXParserFactory;
+
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
 import org.dom4j.ElementHandler;
-
 import org.xml.sax.EntityResolver;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.InputSource;
@@ -29,8 +30,6 @@ import org.xml.sax.XMLFilter;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.helpers.XMLReaderFactory;
-
-import javax.xml.parsers.SAXParserFactory;
 
 /**
  * <code>SAXReader</code> creates a DOM4J tree from SAX parsing events.
@@ -73,6 +72,8 @@ public class SAXReader {
           "http://xml.org/sax/properties/lexical-handler";
   private static final String SAX_LEXICALHANDLER =
           "http://xml.org/sax/handlers/LexicalHandler";
+
+  private static final boolean DEFAULT_XXE_SAFE = Boolean.getBoolean("dom4j.default_xxe_safe");
 
   /**
    * <code>DocumentFactory</code> used to create new document objects
@@ -151,14 +152,21 @@ public class SAXReader {
 
   public static SAXReader createDefault() {
     SAXReader reader = new SAXReader();
+    if (!DEFAULT_XXE_SAFE) {
+       initXxeSafe(reader);
+    }
+    return reader;
+  }
+
+  protected static void initXxeSafe(SAXReader reader) {
     try {
       reader.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
       reader.setFeature("http://xml.org/sax/features/external-general-entities", false);
       reader.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
     } catch (SAXException e) {
       // nothing to do, incompatible reader
+      System.out.println("error on dom4j SAXReader.initXxeSafe:"+e.getMessage());
     }
-    return reader;
   }
 
   /**
@@ -172,6 +180,9 @@ public class SAXReader {
    * </pre>
    */
   public SAXReader() {
+    if (DEFAULT_XXE_SAFE) {
+      initXxeSafe(this);
+    }
   }
 
   /**
